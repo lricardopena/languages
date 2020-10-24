@@ -1,9 +1,5 @@
-from io import BytesIO
-
 import pandas as pd
-from PIL import Image
 from graphviz import Digraph
-from plantuml import PlantUML
 
 EPSILON = 'e'
 UPPER = "UPPER"
@@ -13,7 +9,7 @@ TYPE_TABLE = "type_table"
 STATE = "state"
 
 
-class MasterRegularLanguages:
+class LStartRegularLanguages:
 
     table: pd.DataFrame
 
@@ -317,5 +313,5 @@ class MasterRegularLanguages:
 
 
 if __name__ == '__main__':
-    maestro = MasterRegularLanguages({'0', '1'})
+    maestro = LStartRegularLanguages({'0', '1'})
     maestro.run()
