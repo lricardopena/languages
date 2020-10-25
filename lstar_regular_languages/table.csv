@@ -1,6 +1,0 @@
-type_table,state,e
-LOWER,00,1
-LOWER,01,0
-LOWER,1,0
-UPPER,0,0
-UPPER,e,1

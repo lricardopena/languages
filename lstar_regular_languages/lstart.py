@@ -48,7 +48,7 @@ class LStartRegularLanguages:
 
         return f"{str1}{str2}"
 
-    def add_rows_table(self, data: dict):
+    def add_rows_to_table(self, data: dict):
         index_element_delete = []
         for i, state in enumerate(data[STATE]):
             if state in self.table.index.get_level_values(1).values:
@@ -90,7 +90,7 @@ class LStartRegularLanguages:
             dict_to_add[TYPE_TABLE].append(LOWER)
             dict_to_add[EPSILON].append(sigma_belongs_language)
 
-        self.add_rows_table(dict_to_add)
+        self.add_rows_to_table(dict_to_add)
 
     def add_column(self, sigma):
         if sigma in self.table:
@@ -136,29 +136,32 @@ class LStartRegularLanguages:
 
     def table_consistent(self) -> bool:
         df = self.table
-        df_upper = df[df.index.get_level_values(0) == UPPER]
+        upper_table = df[df.index.get_level_values(0) == UPPER]
 
-        is_table_consistent = True
         # Explore only those elements that are in the upper table
-        for actual_index, actual_row in df_upper.iterrows():
+        for actual_index, actual_row in upper_table.iterrows():
             actual_state_name = actual_index[1]
 
-            for similar_index, similar_row in df_upper.iterrows():
+            for similar_index, similar_row in upper_table.iterrows():
 
-                if similar_index == actual_index or not actual_row.equals(similar_row):
-                    continue
+                if similar_index != actual_index and actual_row.equals(similar_row):
+                    similar_state = similar_index[1]
 
-                similar_state = similar_index[1]
+                    for sigma in self.alphabet:
+                        if sigma not in self.table.columns.values:
+                            successor_actual_state = self.concatenate_two_strings(actual_state_name, sigma)
+                            successor_similar_state = self.concatenate_two_strings(similar_state, sigma)
 
-                for sigma in self.alphabet:
-                    consistent = self.is_row_consistent_with(actual_state_name, similar_state, sigma)
-                    if is_table_consistent and not consistent:
-                        # Contradiction, because we say that the table is consistent, but we found that a row is not
-                        # consistent so we add the column sigma to the table
-                        self.add_column(sigma)
-                        is_table_consistent = False
+                            successor_actual_row = df[df.index.get_level_values(1) == successor_actual_state].iloc[0]
+                            successor_similar_row = df[df.index.get_level_values(1) == successor_similar_state].iloc[0]
 
-        return is_table_consistent
+                            if not successor_actual_row.equals(successor_similar_row):
+                                # Contradiction, because we say that the table is consistent, but we found that a row is not
+                                # consistent so we add the column sigma to the table
+                                self.add_column(sigma)
+                                return False
+
+        return True
 
     def fill_columns(self, states_to_add: list, is_upper_table: bool):
         dict_to_add = {c: [] for c in self.table.columns}
@@ -171,38 +174,38 @@ class LStartRegularLanguages:
 
         dict_to_add[TYPE_TABLE] = [UPPER if is_upper_table else LOWER] * len(states_to_add)
         dict_to_add[STATE] = states_to_add
-        self.add_rows_table(dict_to_add)
+        self.add_rows_to_table(dict_to_add)
 
     def add_successors_row(self, current_state):
-        states_to_add = []
-        states_in_table = self.table.index.get_level_values(1).values.tolist()
-        for sigma in self.alphabet:
-            state_to_add = self.concatenate_two_strings(current_state, sigma)
-
-            for col in self.table.columns:
-                state_to_add = self.concatenate_two_strings(state_to_add, col)
-
-                if states_to_add not in states_in_table:
-                    states_to_add.append(state_to_add)
+        states_to_add = [self.concatenate_two_strings(current_state, sigma) for sigma in self.alphabet]
 
         self.fill_columns(states_to_add, is_upper_table=False)
 
     def table_close(self) -> bool:
         df = self.table
-        df_upper = df[df.index.get_level_values(0) == UPPER]
-        df_lower = df[df.index.get_level_values(0) == LOWER]
-        for actual_index, actual_row in df_lower.iterrows():
-            # check if the row is in the upper table
-            if actual_row.values not in df_upper.values:
-                # We don't found the value in the upper row, then is not close
 
-                # We send the actual row to the upper table
+        upper_table = df[df.index.get_level_values(0) == UPPER]
+        lower_table = df[df.index.get_level_values(0) == LOWER]
+
+        for actual_index, actual_row in lower_table.iterrows():
+            # check if the row is in the upper table
+            if actual_row.values not in upper_table.values:
+                # We don't found the value in the upper row, then the table is not close
+
+                # Get the not closed state
                 current_state = actual_index[1]
 
+                # reset the index to update the value to the upper table
                 df.reset_index(inplace=True)
-                index = df.index[(df[TYPE_TABLE] == actual_index[0]) & (df[STATE] == actual_index[1])]
-                df.set_value(index, TYPE_TABLE, UPPER).set_index([TYPE_TABLE, STATE], inplace=True)
+                # Send the actual state (row) to the upper table
+                row = df.index[(df[TYPE_TABLE] == actual_index[0]) & (df[STATE] == actual_index[1])].values
+                type_table_values = df[TYPE_TABLE]
                 # We send the actual row to the upper table
+                type_table_values.loc[row] = UPPER
+                df[TYPE_TABLE] = type_table_values
+
+                # Set the index
+                df.set_index([TYPE_TABLE, STATE], inplace=True)
 
                 # Add his successors to the lower table
                 self.add_successors_row(current_state)
@@ -210,18 +213,20 @@ class LStartRegularLanguages:
 
         return True
 
-    def get_dictionary_states(self) -> dict:
+    def get_dictionary_states(self):
         df = self.table
 
         df_upper = df[df.index.get_level_values(0) == UPPER]
 
         name_states = {}
+        states_string = {}
         i = 0
         for actual_index, actual_value in df_upper.iterrows():
             state_string = actual_index[1]
 
             if state_string not in name_states:
                 name_states[state_string] = f"q{i}"
+                states_string[f"q{i}"] = str(state_string)
                 i += 1
 
                 for similar_index, similar_value in df.iterrows():
@@ -231,12 +236,12 @@ class LStartRegularLanguages:
 
                     name_states[similar_state] = name_states[state_string]
 
-        return name_states
+        return name_states, states_string
 
     def show_automaton(self):
-        name_states = self.get_dictionary_states()
-        df_upper = self.table[self.table.index.get_level_values(0) == UPPER]
-        final_states = set(name_states[f] for f in df_upper[df_upper[EPSILON] == '1'].index.get_level_values(1).values)
+        name_states, states_string = self.get_dictionary_states()
+        upper_table = self.table[self.table.index.get_level_values(0) == UPPER]
+        final_states = set(name_states[f] for f in upper_table[upper_table[EPSILON] == '1'].index.get_level_values(1).values)
 
         f = Digraph('finite_state_machine', filename='fsm.gv')
         f.attr(rankdir='LR', size='8,5')
@@ -256,7 +261,7 @@ class LStartRegularLanguages:
         f.edge(' ', name_states[EPSILON], label=' ')
 
         # Transitions
-        for string_state_from, state_from in name_states.items():
+        for state_from, string_state_from in states_string.items():
             for sigma in input_symbols:
                 string_state_to = self.concatenate_two_strings(string_state_from, sigma)
                 state_to = name_states[string_state_to]
@@ -270,10 +275,12 @@ class LStartRegularLanguages:
 
         final_string = []
 
+        successors_to_add = []
         states_to_add = []
         for c in string_counterexample:
             final_string.append(c)
             current_state = ''.join(final_string)
+            successors_to_add.append(current_state)
             if current_state not in self.table.index.get_level_values(1).values:
                 states_to_add.append(current_state)
             else:
@@ -281,14 +288,25 @@ class LStartRegularLanguages:
                 df = self.table
                 df.reset_index(inplace=True)
                 try:
-                    index = df.index[(df[TYPE_TABLE] == LOWER) & (df[STATE] == current_state)]
-                    df.set_value(index, TYPE_TABLE, UPPER)
+                    # Send the actual state (row) to the upper table
+                    row = df.index[(df[TYPE_TABLE] == LOWER) & (df[STATE] == current_state)].values
+                    if len(row) == 0:
+                        # The row is already in the upper table
+                        continue
+                    type_table_values = df[TYPE_TABLE]
+                    # We send the actual row to the upper table
+                    type_table_values.loc[row] = UPPER
+                    df[TYPE_TABLE] = type_table_values
                 except KeyError:
                     pass
                 finally:
+                    # Set the index
                     df.set_index([TYPE_TABLE, STATE], inplace=True)
 
         self.fill_columns(states_to_add, is_upper_table=True)
+
+        for s in successors_to_add:
+            self.add_successors_row(s)
 
     def correct_automaton(self):
         self.show_automaton()
@@ -297,19 +315,21 @@ class LStartRegularLanguages:
             response = response.lower()
             if response[0] == "y":
                 self.running = False
-                break
+                return True
             elif response[0] == 'n':
                 self.deal_counterexample()
-                break
+                return False
 
     def run(self):
         while self.running:
-            self.table.to_csv("table.csv")
             if not self.table_consistent():
                 continue
-            elif not self.table_close():
+
+            if not self.table_close():
                 continue
-            self.correct_automaton()
+
+            if self.correct_automaton():
+                break
 
 
 if __name__ == '__main__':
