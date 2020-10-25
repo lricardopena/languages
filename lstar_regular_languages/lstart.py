@@ -292,7 +292,11 @@ class LStartRegularLanguages:
                 return False
 
     def run(self):
+        iteration = 0
         while self.running:
+            self.table.to_csv(f"table_{iteration}.csv")
+            iteration += 1
+
             if not self.table_consistent():
                 continue
 
