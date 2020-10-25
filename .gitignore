@@ -128,3 +128,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .idea/
+/lstar_regular_languages/fsm.gv.pdf
+/lstar_regular_languages/fsm.gv
