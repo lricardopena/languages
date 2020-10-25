@@ -136,9 +136,9 @@ class LStartRegularLanguages:
     def fill_columns(self, states_to_add: list, is_upper_table: bool):
         dict_to_add = {c: [] for c in self.table.columns}
 
-        for string_to_ask in states_to_add:
+        for state_string in states_to_add:
             for c in dict_to_add.keys():
-                string_to_ask = self.concatenate_two_strings(string_to_ask, c)
+                string_to_ask = self.concatenate_two_strings(state_string, c)
                 state_belong_language = self.ask_if_string_belongs_language(string_to_ask)
                 dict_to_add[c].append(state_belong_language)
 
