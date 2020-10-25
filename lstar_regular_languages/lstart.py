@@ -117,20 +117,19 @@ class LStartRegularLanguages:
                 if similar_index != actual_index and actual_row.equals(similar_row):
                     similar_state = similar_index[1]
 
-                    for sigma in self.alphabet:
-                        if sigma not in self.table.columns.values:
-                            successor_actual_state = self.concatenate_two_strings(actual_state_name, sigma)
-                            successor_similar_state = self.concatenate_two_strings(similar_state, sigma)
+                    for sigma in [s for s in self.alphabet if s not in self.table.columns.values]:
+                        successor_actual_state = self.concatenate_two_strings(actual_state_name, sigma)
+                        successor_similar_state = self.concatenate_two_strings(similar_state, sigma)
 
-                            successor_actual_row = df[df.index.get_level_values(1) == successor_actual_state].iloc[0]
-                            successor_similar_row = df[df.index.get_level_values(1) == successor_similar_state].iloc[0]
+                        successor_actual_row = df[df.index.get_level_values(1) == successor_actual_state].iloc[0]
+                        successor_similar_row = df[df.index.get_level_values(1) == successor_similar_state].iloc[0]
 
-                            if not successor_actual_row.equals(successor_similar_row):
-                                # Contradiction, because we say that the table is consistent,
-                                # but we found that a row is not
-                                # consistent so we add the column sigma to the table
-                                self.add_column(sigma)
-                                return False
+                        if not successor_actual_row.equals(successor_similar_row):
+                            # Contradiction, because we say that the table is consistent,
+                            # but we found that a row is not
+                            # consistent so we add the column sigma to the table
+                            self.add_column(sigma)
+                            return False
 
         return True
 
@@ -305,5 +304,7 @@ class LStartRegularLanguages:
 
 
 if __name__ == '__main__':
-    maestro = LStartRegularLanguages({'0', '1'})
+    input_characters = input('Give me the input alphabet separated by comma')
+    input_characters = set(input_characters.split(','))
+    maestro = LStartRegularLanguages(input_characters)
     maestro.run()
