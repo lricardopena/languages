@@ -1,7 +1,7 @@
 import pandas as pd
 from graphviz import Digraph
 
-EPSILON = 'e'
+EPSILON = '\u03B5'
 UPPER = "UPPER"
 LOWER = "LOWER"
 
@@ -14,7 +14,7 @@ class LStartRegularLanguages:
     table: pd.DataFrame
 
     def __init__(self, alphabet: set):
-        self.alphabet = list(alphabet)
+        self.alphabet = sorted(list(alphabet))
 
         self.running = True
 
@@ -28,9 +28,7 @@ class LStartRegularLanguages:
         if str_to_ask in self.cache_accepted_strings:
             return self.cache_accepted_strings[str_to_ask]
 
-        str_show = f"El lenguaje acepta la cadena {str_to_ask}?y/n"
-        if str_to_ask == EPSILON:
-            str_show = f"El lenguaje acepta la cadena VACIA?y/n"
+        str_show = f"The language accepts the string {str_to_ask}?y/n"
 
         response_in = input(str_show).lower()
         value = int(response_in[0] == 'y')
@@ -106,34 +104,6 @@ class LStartRegularLanguages:
         self.table[sigma] = experiment_values
         return True
 
-    def is_row_consistent_with(self, actual_state_name, similar_state, sigma):
-        df = self.table
-        is_consistent = True
-        next_actual_state = self.concatenate_two_strings(actual_state_name, sigma)
-        states_to_add = []
-        if next_actual_state not in df.index.get_level_values(1).values:
-            states_to_add.append(next_actual_state)
-
-        next_similar_state = self.concatenate_two_strings(similar_state, sigma)
-        if next_similar_state not in df.index.get_level_values(1).values:
-            states_to_add.append(next_similar_state)
-
-        if len(states_to_add) > 0:
-            self.fill_columns(states_to_add, is_upper_table=False)
-            df = self.table
-
-        index_values = df.index.values
-        idx = df.index.get_level_values(1).values.tolist().index(next_actual_state)
-        next_row = df.loc[index_values[idx]]
-
-        idx = df.index.get_level_values(1).values.tolist().index(next_similar_state)
-        next_similar_row = df.loc[index_values[idx]]
-
-        if not next_row.equals(next_similar_row) and sigma not in self.table.columns.values:
-            # if the values are different, then rey are inconsistent with sigma
-            is_consistent = False
-        return is_consistent
-
     def table_consistent(self) -> bool:
         df = self.table
         upper_table = df[df.index.get_level_values(0) == UPPER]
@@ -156,7 +126,8 @@ class LStartRegularLanguages:
                             successor_similar_row = df[df.index.get_level_values(1) == successor_similar_state].iloc[0]
 
                             if not successor_actual_row.equals(successor_similar_row):
-                                # Contradiction, because we say that the table is consistent, but we found that a row is not
+                                # Contradiction, because we say that the table is consistent,
+                                # but we found that a row is not
                                 # consistent so we add the column sigma to the table
                                 self.add_column(sigma)
                                 return False
@@ -241,7 +212,8 @@ class LStartRegularLanguages:
     def show_automaton(self):
         name_states, states_string = self.get_dictionary_states()
         upper_table = self.table[self.table.index.get_level_values(0) == UPPER]
-        final_states = set(name_states[f] for f in upper_table[upper_table[EPSILON] == '1'].index.get_level_values(1).values)
+        final_states = set(name_states[f] for f in upper_table[upper_table[EPSILON] == '1'].index.get_level_values(1)
+                           .values)
 
         f = Digraph('finite_state_machine', filename='fsm.gv')
         f.attr(rankdir='LR', size='8,5')
@@ -271,7 +243,7 @@ class LStartRegularLanguages:
         f.view()
 
     def deal_counterexample(self):
-        string_counterexample = input("Dame un contraejemplo")
+        string_counterexample = input("Give my a counterexample")
 
         final_string = []
 
@@ -311,7 +283,7 @@ class LStartRegularLanguages:
     def correct_automaton(self):
         self.show_automaton()
         while True:
-            response = input("El automata es correcto?y/n")
+            response = input("The automaton is correct?y/n")
             response = response.lower()
             if response[0] == "y":
                 self.running = False
