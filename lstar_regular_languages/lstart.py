@@ -13,7 +13,7 @@ class LStartRegularLanguages:
 
     table: pd.DataFrame
 
-    def __init__(self, alphabet: set):
+    def __init__(self, alphabet: set, initialize=True):
         self.alphabet = sorted(list(alphabet))
 
         self.running = True
@@ -22,7 +22,8 @@ class LStartRegularLanguages:
 
         self.cache_accepted_strings = {}
 
-        self.init_table()
+        if initialize:
+            self.init_table()
 
     def ask_if_string_belongs_language(self, str_to_ask):
         if str_to_ask in self.cache_accepted_strings:
@@ -57,19 +58,20 @@ class LStartRegularLanguages:
                 element_remove = data[k][i]
                 data[k].remove(element_remove)
 
-        df = pd.DataFrame.from_dict(data, dtype=str)
+        if len(data[STATE]) > 0:
+            df = pd.DataFrame.from_dict(data, dtype=str)
 
-        for c in df.columns:
-            df[c].astype(str)
+            for c in df.columns:
+                df[c].astype(str)
 
-        df.set_index([TYPE_TABLE, STATE], inplace=True)
+            df.set_index([TYPE_TABLE, STATE], inplace=True)
 
-        self.table = pd.concat([self.table, df], sort=True)
+            self.table = pd.concat([self.table, df], sort=True)
 
-        self.table.sort_index(inplace=True)
+            self.table.sort_index(inplace=True)
 
-        for c in self.table.columns:
-            self.table[c].astype(str)
+            for c in self.table.columns:
+                self.table[c].astype(str)
 
     def init_table(self):
         dict_to_add = {STATE: [], EPSILON: [], TYPE_TABLE: []}
@@ -135,6 +137,7 @@ class LStartRegularLanguages:
 
     def fill_columns(self, states_to_add: list, is_upper_table: bool):
         dict_to_add = {c: [] for c in self.table.columns}
+        states_to_add = [s for s in states_to_add if s not in self.table.index.get_level_values(1)]
 
         for state_string in states_to_add:
             for c in dict_to_add.keys():
@@ -305,6 +308,7 @@ class LStartRegularLanguages:
 
             if self.correct_automaton():
                 break
+        self.show_automaton()
 
 
 if __name__ == '__main__':
